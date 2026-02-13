@@ -12,7 +12,8 @@ const TelemetryService = {
       attributes,
       timestamp: new Date().toISOString(),
     };
-    console.log(`[TELEMETRY] ${eventName}`, payload);
+    // Reduced console noise for production
+    // console.log(`[TELEMETRY] ${eventName}`, payload);
   },
 
   measurePerformance: () => {
@@ -39,12 +40,22 @@ const PortfolioData = {
     try {
       // Load projects
       if (typeof portfolioApi !== "undefined") {
-        this.projects = await portfolioApi.getProjects();
-        this.heroContent = await portfolioApi.getContent("hero");
-        this.aboutContent = await portfolioApi.getContent("about");
+        const projectsData = await portfolioApi.getProjects();
+        // Ensure projects is always an array
+        this.projects = Array.isArray(projectsData) ? projectsData : [];
+        
+        const heroData = await portfolioApi.getContent("hero");
+        this.heroContent = heroData || {};
+        
+        const aboutData = await portfolioApi.getContent("about");
+        this.aboutContent = aboutData || {};
       }
     } catch (error) {
       console.error("Error loading portfolio data:", error);
+      // Fallback to empty array to prevent crashes
+      this.projects = [];
+      this.heroContent = {};
+      this.aboutContent = {};
     }
   },
 
@@ -71,7 +82,7 @@ function renderProjects() {
   // Clear existing content
   container.innerHTML = ''
 
-  if (projects.length === 0) {
+  if (!projects || projects.length === 0) {
     // Show loading message if no projects yet
     container.innerHTML = `
       <div class="col-span-full text-center text-gray-500">
@@ -176,6 +187,7 @@ function scrollToSection(id) {
 
 function toggleMobileMenu() {
   const menu = document.getElementById("mobile-menu");
+  if (!menu) return;
 
   if (menu.classList.contains("hidden")) {
     menu.classList.remove("hidden");
@@ -186,6 +198,8 @@ function toggleMobileMenu() {
 
 function openModal() {
   const modal = document.getElementById("contact-modal");
+  if (!modal) return;
+  
   modal.classList.remove("hidden");
   modal.classList.add("flex");
   TelemetryService.logEvent("contact_button_clicked", {
@@ -195,6 +209,8 @@ function openModal() {
 
 function closeModal() {
   const modal = document.getElementById("contact-modal");
+  if (!modal) return;
+  
   modal.classList.add("hidden");
   modal.classList.remove("flex");
 }
@@ -206,9 +222,15 @@ function trackProjectView(title) {
 
 async function handleFormSubmit(event) {
   event.preventDefault();
-  const name = document.getElementById("form-name").value;
-  const email = document.getElementById("form-email").value;
-  const message = document.getElementById("form-message").value;
+  const nameInput = document.getElementById("form-name");
+  const emailInput = document.getElementById("form-email");
+  const messageInput = document.getElementById("form-message");
+
+  if (!nameInput || !emailInput || !messageInput) return;
+
+  const name = nameInput.value;
+  const email = emailInput.value;
+  const message = messageInput.value;
 
   TelemetryService.logEvent("contact_form_submitted", {
     user_email: email,
@@ -238,7 +260,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Update year in footer
-  document.getElementById("year").textContent = new Date().getFullYear();
+  const yearEl = document.getElementById("year");
+  if (yearEl) {
+    yearEl.textContent = new Date().getFullYear();
+  }
 
   // Load portfolio data from backend
   await PortfolioData.loadAll();
@@ -255,11 +280,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Log active users (mock)
-  const activeUsers = Math.floor(Math.random() * 50) + 10;
-  TelemetryService.logEvent("active_users_last_hour", {
-    count: activeUsers,
-    timestamp: new Date().toISOString(),
-  });
+  // Only log if necessary to avoid DB spam
+  // const activeUsers = Math.floor(Math.random() * 50) + 10;
+  // TelemetryService.logEvent("active_users_last_hour", {
+  //   count: activeUsers,
+  //   timestamp: new Date().toISOString(),
+  // });
 
   // Measure performance after page load
   window.onload = () => {
