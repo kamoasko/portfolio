@@ -22,10 +22,13 @@ export class MessagesController {
         query.isRead = false;
       }
 
+      const skipVal = parseInt(skip as string) || 0;
+      const limitVal = parseInt(limit as string) || 20;
+
       const messages = await Message.find(query)
         .sort({ submittedAt: -1 })
-        .skip(parseInt(skip as string) || 0)
-        .limit(parseInt(limit as string) || 20)
+        .skip(skipVal)
+        .limit(limitVal)
         .lean();
 
       const total = await Message.countDocuments(query);
@@ -41,10 +44,8 @@ export class MessagesController {
           data: {
             data: messages,
             total,
-            page: Math.floor(
-              parseInt(skip as string) || 0 / parseInt(limit as string) || 20,
-            ),
-            limit: parseInt(limit as string) || 20,
+            page: Math.floor(skipVal / limitVal) + 1, // Corrected pagination logic (1-based index)
+            limit: limitVal,
             unread,
           } as any,
         };
