@@ -34,12 +34,16 @@ export class AuthController {
         throwError(409, "Email or username already exists");
       }
 
+      // Determine role: First user is admin, others are viewers
+      const userCount = await User.countDocuments();
+      const role = userCount === 0 ? "admin" : "viewer";
+
       // Create new user
       const user = new User({
         email: email.toLowerCase(),
         username,
         passwordHash: password,
-        role: "admin", // First user becomes admin
+        role: role,
         isActive: true,
       });
 
