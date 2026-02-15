@@ -21,11 +21,14 @@ export async function createApp(): Promise<Express> {
   await connectDatabase();
 
   // Middleware
+  // Fix: Pass the array from config to cors origin
   app.use(
     cors({
       origin: config.corsOrigin,
       credentials: true,
-    }),
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
   );
 
   app.use(express.json());
