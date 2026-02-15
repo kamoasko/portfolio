@@ -1,75 +1,66 @@
-import { createRouter, createWebHistory } from "vue-router";
-import { useAuthStore } from "../stores/auth.store";
-import AuthView from "../views/AuthView.vue";
-import DashboardView from "../views/DashboardView.vue";
-import ProjectsView from "../views/ProjectsView.vue";
-import ContentView from "../views/ContentView.vue";
-import MessagesView from "../views/MessagesView.vue";
-import AnalyticsView from "../views/AnalyticsView.vue";
+import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import { useAuthStore } from "./stores/auth.store";
+import DashboardView from "./views/DashboardView.vue";
+import AuthView from "./views/AuthView.vue";
 
-const routes = [
+const routes: Array<RouteRecordRaw> = [
   {
-    path: "/login",
-    name: "Login",
-    component: AuthView,
-    meta: { requiresAuth: false },
-  },
-  {
-    path: "/dashboard",
+    path: "/",
     name: "Dashboard",
     component: DashboardView,
     meta: { requiresAuth: true },
   },
   {
+    path: "/login",
+    name: "Login",
+    component: AuthView,
+    meta: { guestOnly: true },
+  },
+  {
+    path: "/register",
+    name: "Register",
+    component: AuthView,
+    meta: { guestOnly: true },
+  },
+  {
     path: "/projects",
     name: "Projects",
-    component: ProjectsView,
+    component: () => import("./views/ProjectsView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/content",
     name: "Content",
-    component: ContentView,
+    component: () => import("./views/ContentView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/messages",
     name: "Messages",
-    component: MessagesView,
+    component: () => import("./views/MessagesView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/analytics",
     name: "Analytics",
-    component: AnalyticsView,
+    component: () => import("./views/AnalyticsView.vue"),
     meta: { requiresAuth: true },
-  },
-  {
-    path: "/",
-    redirect: "/dashboard",
   },
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes,
 });
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore();
-
-  // Restore session if not already done
-  if (!authStore.user && !authStore.isAuthenticated) {
-    await authStore.restoreSession();
-  }
-
   const isAuthenticated = authStore.isAuthenticated;
-  const requiresAuth = to.meta.requiresAuth !== false;
 
-  if (requiresAuth && !isAuthenticated) {
-    next("/login");
-  } else if (to.path === "/login" && isAuthenticated) {
-    next("/dashboard");
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next({ name: "Login" });
+  } else if (to.meta.guestOnly && isAuthenticated) {
+    next({ name: "Dashboard" });
   } else {
     next();
   }
